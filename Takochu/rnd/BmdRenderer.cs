@@ -631,7 +631,7 @@ namespace Takochu.rnd
                             }
                             else
                             {
-                                mtxtable[i] = m_Model.Joints[mtxtype.Index].FinalMatrix;
+                                mtxtable[i] = m_Model.Joints[mtxtype.TransformIndex].FinalMatrix;
                                 mtx_debug[i] = 0;
                             }
                         }

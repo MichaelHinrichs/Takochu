@@ -97,7 +97,8 @@ namespace Takochu.fmt
             matstack.Push(0xFFFF);
             nodestack.Push(-1);
 
-            m_File.Skip(8);
+            m_File.Skip(4);
+            NumPackets = m_File.ReadUInt32();
             NumVertices = m_File.ReadUInt32();
 
             uint datastart = m_File.ReadUInt32();
@@ -344,19 +345,19 @@ namespace Takochu.fmt
 
             MatrixTypes = new MatrixType[count];
 
-            uint offset0 = m_File.ReadUInt32();
-            uint offset1 = m_File.ReadUInt32();
+            uint isWeightedOffset = m_File.ReadUInt32();
+            uint TransformIndexOffset = m_File.ReadUInt32();
 
             for (int i = 0; i < count; i++)
             {
                 MatrixType mt = new MatrixType();
                 MatrixTypes[i] = mt;
 
-                m_File.Seek((int)(sectionstart + offset0 + i));
+                m_File.Seek((int)(sectionstart + isWeightedOffset + i));
                 mt.IsWeighted = (m_File.ReadByte() != 0);
 
-                m_File.Seek((int)(sectionstart + offset1 + (i * 2)));
-                mt.Index = m_File.ReadUInt16();
+                m_File.Seek((int)(sectionstart + TransformIndexOffset + (i * 2)));
+                mt.TransformIndex = m_File.ReadUInt16();
             }
 
             m_File.Seek((int)(sectionstart + sectionsize));
@@ -373,7 +374,7 @@ namespace Takochu.fmt
             Joints = new Joint[numjoints];
 
             uint jointsoffset = m_File.ReadUInt32();
-            uint unkoffset = m_File.ReadUInt32();
+            uint jointremapoffset = m_File.ReadUInt32();
             uint stringsoffset = m_File.ReadUInt32();
 
             for (int i = 0; i < numjoints; i++)
@@ -425,6 +426,10 @@ namespace Takochu.fmt
 
                     break;
                 }
+                m_File.Seek((int)(sectionstart + jointremapoffset + (i * 2)));
+                jnt.Remap = m_File.ReadUInt16();
+                m_File.Seek((int)(sectionstart + stringsoffset));
+                jnt.Name = m_File.ReadString(Data, StringOffset);
             }
 
             m_File.Seek((int)(sectionstart + sectionsize));
@@ -1169,7 +1174,7 @@ namespace Takochu.fmt
         public class MatrixType
         {
             public bool IsWeighted;
-            public ushort Index;
+            public ushort TransformIndex;
         }
 
         public class Joint
@@ -1180,6 +1185,9 @@ namespace Takochu.fmt
             public Vector3 Scale, Rotation, Translation;
             public Matrix4 Matrix;
             public Matrix4 FinalMatrix; // matrix with parents' transforms applied
+
+            public ushort Remap;
+            public string Name = string.Empty;
         }
 
         public class Material
@@ -1315,6 +1323,7 @@ namespace Takochu.fmt
         public Vector3 BBoxMin, BBoxMax;
 
         // INF1
+        public uint NumPackets;
         public uint NumVertices;
         public List<SceneGraphNode> SceneGraph;
 
