@@ -7,6 +7,7 @@ using Takochu.fmt;
 using Takochu.smg;
 using Takochu.smg.msg;
 using Takochu.util;
+using static Takochu.util.EditorUtil;
 
 namespace Takochu
 {
@@ -19,16 +20,18 @@ namespace Takochu
         static void Main()
         {
             BCSV.PopulateHashTable();
+            BCSV.PopulateFieldTypeTable();
             CameraUtil.InitCameras();
             ObjectDB.Load();
             RenderUtil.AssignColors();
+            EditorActionHolder.Initialize();
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainWindow());
         }
 
-        public static Translator sTranslator;
+        //public static Translator sTranslator;
         public static string sLanguage;
         public static Game sGame;
         public static int sUniqueID;

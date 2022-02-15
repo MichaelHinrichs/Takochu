@@ -12,7 +12,7 @@ namespace Takochu.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.10.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.0.3.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -79,6 +79,54 @@ namespace Takochu.Properties {
             }
             set {
                 this["IsBleedingEdge"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool EditorWindowDisplayArea {
+            get {
+                return ((bool)(this["EditorWindowDisplayArea"]));
+            }
+            set {
+                this["EditorWindowDisplayArea"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool EditorWindowDisplayCamearaArea {
+            get {
+                return ((bool)(this["EditorWindowDisplayCamearaArea"]));
+            }
+            set {
+                this["EditorWindowDisplayCamearaArea"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool EditorWindowDisplayGravity {
+            get {
+                return ((bool)(this["EditorWindowDisplayGravity"]));
+            }
+            set {
+                this["EditorWindowDisplayGravity"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool EditorWindowDisplayPath {
+            get {
+                return ((bool)(this["EditorWindowDisplayPath"]));
+            }
+            set {
+                this["EditorWindowDisplayPath"] = value;
             }
         }
     }

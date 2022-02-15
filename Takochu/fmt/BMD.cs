@@ -154,7 +154,16 @@ namespace Takochu.fmt
             byte a = m_File.ReadByte();
             return new Vector4(r / 255f, g / 255f, b / 255f, a / 255f);
         }
-
+        private Vector4 ReadColorValue_RGB8()
+        {
+            //OpenTK.Graphics.OpenGL.PixelFormat.
+            byte r = m_File.ReadByte();
+            byte g = m_File.ReadByte();
+            byte b = m_File.ReadByte();
+            
+            //byte a = m_File.ReadByte();
+            return new Vector4(r / 255f, g / 255f, b / 255f , 1f);
+        }
 
         // support functions for reading sections
         private void ReadINF1()
@@ -230,6 +239,8 @@ namespace Takochu.fmt
             List<uint> arrayoffsets = new List<uint>();
 
             uint arraydefoffset = m_File.ReadUInt32();
+
+            //オフセットデータを取得
             for (int i = 0; i < 13; i++)
             {
                 m_File.Seek((int)(sectionstart + 0xC + (i * 0x4)));
@@ -687,6 +698,7 @@ namespace Takochu.fmt
             ushort nummaterials = m_File.ReadUInt16();
             m_File.Skip(2);
 
+            //マテリアルの個数分のマテリアル型配列を生成
             Materials = new Material[nummaterials];
 
             // uh yeah let's create 30 separate variables
@@ -1210,27 +1222,48 @@ namespace Takochu.fmt
         }
         static int lolz = 0;
 
-
+        /// <summary>
+        /// モデルを定義する基本設定クラス
+        /// </summary>
         public class SceneGraphNode
         {
             public ushort MaterialID;
 
             public int ParentIndex;
+            /// <summary>
+            /// 0の場合はメッシュ、1の場合はジョイント
+            /// </summary>
             public int NodeType; // 0: shape, 1: joint
             public ushort NodeID;
         }
 
+        /// <summary>
+        /// 頂点関係の情報全て
+        /// </summary>
         public class Batch
         {
             public class Packet
             {
                 public class Primitive
                 {
+                    
+                    /// <summary>
+                    /// 頂点(インデックス)数
+                    /// </summary>
                     public int NumIndices;
+
+
+                    /// <summary>
+                    /// 描画タイプ
+                    /// </summary>
                     public byte PrimitiveType;
 
                     public uint ArrayMask;
                     public int[] PosMatrixIndices;
+
+                    /// <summary>
+                    /// 頂点インデックス
+                    /// </summary>
                     public int[] PositionIndices;
                     public int[] NormalIndices;
                     public int[][] ColorIndices;
@@ -1277,8 +1310,14 @@ namespace Takochu.fmt
             public string Name = string.Empty;
         }
 
+        /// <summary>
+        /// マテリアルの情報全て入ってるクラス
+        /// </summary>
         public class Material
         {
+            /// <summary>
+            /// 深度系情報
+            /// </summary>
             public struct ZModeInfo
             {
                 public bool EnableZTest;
@@ -1286,6 +1325,9 @@ namespace Takochu.fmt
                 public bool EnableZWrite;
             }
 
+            /// <summary>
+            /// TEVの順番決める情報
+            /// </summary>
             public struct TevOrderInfo
             {
                 public byte TexcoordId;
@@ -1302,6 +1344,7 @@ namespace Takochu.fmt
             {
                 public short R, G, B, A;
             }
+
 
             public struct TexGenInfo
             {
@@ -1345,6 +1388,9 @@ namespace Takochu.fmt
                 public byte Func1, Ref1;
             }
 
+            /// <summary>
+            /// Blend方法の情報全て
+            /// </summary>
             public struct BlendModeInfo
             {
                 public byte BlendMode;
@@ -1355,11 +1401,21 @@ namespace Takochu.fmt
 
             public string Name;
 
+            /// <summary>
+            /// 不透明か透明か
+            /// </summary>
             public byte DrawFlag; // apparently: 1=opaque, 4=translucent, 253=???
+            /// <summary>
+            /// カリング方法
+            /// </summary>
             public byte CullMode;
             public int NumChans;
             public int NumTexgens;
+            /// <summary>
+            /// TEV Stageの数
+            /// </summary>
             public int NumTevStages;
+
             // matData6
             public ZModeInfo ZMode;
             // matData7
@@ -1386,6 +1442,9 @@ namespace Takochu.fmt
             public BlendModeInfo BlendMode;
         }
 
+        /// <summary>
+        /// テクスチャの設定全て
+        /// </summary>
         public class Texture
         {
             public byte Format;
@@ -1417,10 +1476,28 @@ namespace Takochu.fmt
 
         // VTX1
         public uint ArrayMask;
+
+        /// <summary>
+        /// 頂点位置
+        /// </summary>
         public Vector3[] PositionArray;
+        /// <summary>
+        /// 法線
+        /// </summary>
         public Vector3[] NormalArray;
+        /// <summary>
+        /// 頂点カラー(アルファ抜き？)
+        /// </summary>
+        public Vector3[][] ColorArrayV3;
+        /// <summary>
+        /// 頂点カラー(アルファ有り？)
+        /// </summary>
         public Vector4[][] ColorArray;
+        /// <summary>
+        /// UV座標
+        /// </summary>
         public Vector2[][] TexcoordArray;
+
 
         // SHP1
         public Batch[] Batches;

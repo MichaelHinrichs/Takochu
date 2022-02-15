@@ -2,19 +2,22 @@
 using OpenTK.Graphics.OpenGL;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Takochu.calc;
 using Takochu.fmt;
 using Takochu.io;
 using Takochu.rnd;
 using Takochu.util;
+using static Takochu.util.EditorUtil;
 
 namespace Takochu.smg.obj
 {
-    public class PathObj
+    public class PathObj : AbstractObj
     {
-        public PathObj(BCSV.Entry entry, Zone parentZone, RARCFilesystem filesystem)
+        public PathObj(BCSV.Entry entry, Zone parentZone, RARCFilesystem filesystem) : base(entry)
         {
             mFilesystem = filesystem;
             mEntry = entry;
@@ -27,6 +30,7 @@ namespace Takochu.smg.obj
             mID = mEntry.Get<int>("l_id");
 
             mPathArgs = new int[8];
+            mType = "PathObj";
 
             for (int i = 0; i < 8; i++)
                 mPathArgs[i] = mEntry.Get<int>($"path_arg{i}");
@@ -44,10 +48,26 @@ namespace Takochu.smg.obj
                 mPathPointObjs.Add(new PathPointObj(this, e));
             }
 
-            mUnique = Program.sUniqueID++;
+            mPathColor = RenderUtil.GenerateRandomColor();
         }
 
-        public void Save()
+        public void RemovePathPointAtIndex(int idx)
+        {
+            mPathPointObjs.RemoveAt(idx);
+        }
+
+        public override void Reload_mValues()
+        {
+            mNo = ObjectTypeChange.ToInt16(mEntry.Get("no"));
+            mNumPoint = ObjectTypeChange.ToInt32(mEntry.Get("num_pnt"));
+
+            for (int i = 0; i < 8; i++)
+            {
+                mPathArgs[i] = ObjectTypeChange.ToInt32(mEntry.Get($"path_arg{i}"));
+            }
+        }
+
+        public override void Save()
         {
             mEntry.Set("name", mName);
             mEntry.Set("no", mNo);
@@ -74,22 +94,24 @@ namespace Takochu.smg.obj
             b.Save();
         }
 
-        public void Render(RenderMode mode)
+        public override void Render(RenderMode mode)
         {
-            mPathColor = RenderUtil.GenerateRandomColor();
-
             foreach (PathPointObj pp in mPathPointObjs)
             {
                 pp.Render(1, mPathColor, mode);
                 pp.Render(2, mPathColor, mode);
                 pp.Render(0, mPathColor, mode);
 
-                GL.Color4(mPathColor);
+                if (mode != RenderMode.Picking)
+                {
+                    GL.Color4(mPathColor);
+                }
+
                 GL.LineWidth(1.0f);
                 GL.Begin(BeginMode.LineStrip);
 
                 GL.Vertex3(pp.mPoint1);
-                GL.Vertex3(pp.mPosition);
+                GL.Vertex3(pp.mPoint0);
                 GL.Vertex3(pp.mPoint2);
                 GL.End();
             }
@@ -110,13 +132,13 @@ namespace Takochu.smg.obj
                 thepoints.MoveNext();
                 PathPointObj curpoint = thepoints.Current;
 
-                Vector3 start = curpoint.mPosition;
+                Vector3 start = curpoint.mPoint0;
 
                 GL.Vertex3(start);
                
                 for (int p = 1; p < end; p++)
                 {
-                    Vector3 p1 = curpoint.mPosition;
+                    Vector3 p1 = curpoint.mPoint0;
                     Vector3 p2 = curpoint.mPoint2;
 
                     if (!thepoints.MoveNext())
@@ -128,7 +150,7 @@ namespace Takochu.smg.obj
                     curpoint = thepoints.Current;
 
                     Vector3 p3 = curpoint.mPoint1;
-                    Vector3 p4 = curpoint.mPosition;
+                    Vector3 p4 = curpoint.mPoint0;
 
                     float step = 0.01f;
 
@@ -153,11 +175,7 @@ namespace Takochu.smg.obj
         }
 
         public RARCFilesystem mFilesystem;
-        public BCSV.Entry mEntry;
-        public Zone mParentZone;
-        public string mName;
         public short mNo;
-        public string mType;
         public string mClosed;
         public int mNumPoint;
         public int mID;
@@ -166,8 +184,6 @@ namespace Takochu.smg.obj
 
         public int[] mPathArgs;
         public Zone mZone;
-
-        public int mUnique;
 
         public List<PathPointObj> mPathPointObjs;
         public OpenTK.Graphics.Color4 mPathColor;

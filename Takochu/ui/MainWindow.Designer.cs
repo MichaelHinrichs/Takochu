@@ -34,10 +34,10 @@
             this.bcsvEditorBtn = new System.Windows.Forms.ToolStripButton();
             this.rarcExplorer_Btn = new System.Windows.Forms.ToolStripButton();
             this.showMessageEditorBtn = new System.Windows.Forms.ToolStripButton();
-            this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
             this.settingsBtn = new System.Windows.Forms.ToolStripButton();
             this.galaxyTreeView = new System.Windows.Forms.TreeView();
             this.glControl1 = new OpenTK.GLControl();
+            this.hashCalcBtn = new System.Windows.Forms.ToolStripButton();
             this.mainToolStrip.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -48,12 +48,13 @@
             this.selectGameFolderBtn,
             this.bcsvEditorBtn,
             this.rarcExplorer_Btn,
+            this.hashCalcBtn,
             this.showMessageEditorBtn,
-            this.toolStripButton1,
             this.settingsBtn});
             this.mainToolStrip.Location = new System.Drawing.Point(0, 0);
             this.mainToolStrip.Name = "mainToolStrip";
             this.mainToolStrip.Size = new System.Drawing.Size(800, 25);
+            this.mainToolStrip.Stretch = true;
             this.mainToolStrip.TabIndex = 0;
             this.mainToolStrip.Text = "toolStrip1";
             // 
@@ -76,7 +77,7 @@
             this.bcsvEditorBtn.Name = "bcsvEditorBtn";
             this.bcsvEditorBtn.Size = new System.Drawing.Size(73, 22);
             this.bcsvEditorBtn.Text = "BCSV Editor";
-            this.bcsvEditorBtn.Click += new System.EventHandler(this.bcsvEditorBtn_Click);
+            this.bcsvEditorBtn.Click += new System.EventHandler(this.BcsvEditorBtn_Click);
             // 
             // rarcExplorer_Btn
             // 
@@ -97,16 +98,6 @@
             this.showMessageEditorBtn.Size = new System.Drawing.Size(91, 22);
             this.showMessageEditorBtn.Text = "Message Editor";
             this.showMessageEditorBtn.Click += new System.EventHandler(this.showMessageEditorBtn_Click);
-            // 
-            // toolStripButton1
-            // 
-            this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.toolStripButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton1.Image")));
-            this.toolStripButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButton1.Name = "toolStripButton1";
-            this.toolStripButton1.Size = new System.Drawing.Size(78, 22);
-            this.toolStripButton1.Text = "Model Thing";
-            this.toolStripButton1.Click += new System.EventHandler(this.toolStripButton1_Click);
             // 
             // settingsBtn
             // 
@@ -136,6 +127,16 @@
             this.glControl1.TabIndex = 2;
             this.glControl1.VSync = false;
             // 
+            // hashCalcBtn
+            // 
+            this.hashCalcBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.hashCalcBtn.Image = ((System.Drawing.Image)(resources.GetObject("hashCalcBtn.Image")));
+            this.hashCalcBtn.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.hashCalcBtn.Name = "hashCalcBtn";
+            this.hashCalcBtn.Size = new System.Drawing.Size(95, 22);
+            this.hashCalcBtn.Text = "Hash Calculator";
+            this.hashCalcBtn.Click += new System.EventHandler(this.hashCalcBtn_Click);
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -144,6 +145,7 @@
             this.Controls.Add(this.glControl1);
             this.Controls.Add(this.galaxyTreeView);
             this.Controls.Add(this.mainToolStrip);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "MainWindow";
             this.Text = "Takochu";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainWindow_FormClosing);
@@ -163,8 +165,8 @@
         private System.Windows.Forms.ToolStripButton rarcExplorer_Btn;
         private OpenTK.GLControl glControl1;
         private System.Windows.Forms.ToolStripButton showMessageEditorBtn;
-        private System.Windows.Forms.ToolStripButton toolStripButton1;
         private System.Windows.Forms.ToolStripButton settingsBtn;
+        private System.Windows.Forms.ToolStripButton hashCalcBtn;
     }
 }
 

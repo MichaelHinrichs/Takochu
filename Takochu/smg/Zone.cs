@@ -5,8 +5,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using Takochu.fmt;
 using Takochu.io;
+using Takochu.rnd;
 using Takochu.smg.msg;
 using Takochu.smg.obj;
 using Takochu.util;
@@ -16,6 +18,7 @@ namespace Takochu.smg
     public class Zone
     {
         public string[] cPossibleFiles = { "Design", "Light", "Ghost", "Map", "Sound", "ZoneInfo" };
+        public static int MissingPathArgumentsRemove { get; private set; }
 
         public Zone(Galaxy galaxy, string name)
         {
@@ -23,39 +26,40 @@ namespace Takochu.smg
             mGame = galaxy.mGame;
             mFilesystem = mGame.mFilesystem;
             mZoneName = name;
-
-            mIsMainGalaxy = mGalaxy.mName == name;
+            mIsMainGalaxy = (mGalaxy.mName == name);
 
             mMapFiles = new Dictionary<string, FilesystemBase>();
             mObjects = new Dictionary<string, Dictionary<string, List<AbstractObj>>>();
-            mZones = new Dictionary<string, List<StageObj>>();
+            mHasStageObjList = new Dictionary<string, List<StageObj>>();
 
             Load();
         }
 
         public void Load()
         {
+
+            MissingPathArgumentsRemove = 0;
             if (GameUtil.IsSMG1())
             {
                 string path = $"/StageData/{mZoneName}.arc";
-
                 if (mFilesystem.DoesFileExist(path))
                 {
                     mMapFiles.Add("Map", new RARCFilesystem(mFilesystem.OpenFile(path)));
-
+                    Console.WriteLine(path);
                     if (mIsMainGalaxy)
-                        LoadObjects("Map", "Placement", "StageObjInfo");
+                        LoadObjects("Map", "placement", "stageobjinfo");
 
-                    LoadObjects("Map", "placement", "AreaObjInfo");
-                    LoadObjects("Map", "placement", "CameraCubeInfo");
-                    LoadObjects("Map", "placement", "ObjInfo");
-                    LoadObjects("Map", "placement", "PlanetObjInfo");
-                    LoadObjects("Map", "GeneralPos", "GeneralPosInfo");
-                    LoadObjects("Map", "Debug", "DebugMoveInfo");
-                    LoadObjects("Map", "Start", "StartInfo");
-                    LoadObjects("Map", "MapParts", "MapPartsInfo");
-                    LoadObjects("Map", "placement", "DemoObjInfo");
+                    LoadObjects("Map", "placement", "areaobjinfo");
+                    LoadObjects("Map", "placement", "cameracubeinfo");
+                    LoadObjects("Map", "placement", "objinfo");
+                    LoadObjects("Map", "placement", "planetobjinfo");
+                    LoadObjects("Map", "generalpos", "generalposinfo");
+                    LoadObjects("Map", "debug", "debugmoveinfo");
+                    LoadObjects("Map", "start", "startinfo");
+                    LoadObjects("Map", "mapparts", "mappartsinfo");
+                    LoadObjects("Map", "placement", "demoobjinfo");
                 }
+                //LoadMessages();
             }
             else
             {
@@ -67,7 +71,9 @@ namespace Takochu.smg
 
                     if (mFilesystem.DoesFileExist(path))
                     {
-                        mMapFiles.Add(file, new RARCFilesystem(mFilesystem.OpenFile(path)));
+                        RARCFilesystem fs = new RARCFilesystem(mFilesystem.OpenFile(path));
+
+                        mMapFiles.Add(file, fs);
 
                         if (file == "Light")
                         {
@@ -110,6 +116,12 @@ namespace Takochu.smg
         public void LoadObjects(string archive, string directory, string file)
         {
             List<string> layers = mMapFiles[archive].GetDirectories("/root/jmp/" + directory);
+
+            if (layers == null)
+            {
+                return;
+            }
+
             layers.ForEach(l => AssignsObjectsToList(archive, $"{directory}/{l}/{file}"));
         }
 
@@ -127,7 +139,7 @@ namespace Takochu.smg
 
             List<string> intro_cameras = mMapFiles["Map"].GetFilesWithExt("/root/camera", "canm");
 
-            foreach(string intCamera in intro_cameras)
+            foreach (string intCamera in intro_cameras)
             {
                 mIntroCameras.Add(intCamera, new CANM(mMapFiles["Map"].OpenFile($"/root/camera/{intCamera}")));
             }
@@ -137,6 +149,8 @@ namespace Takochu.smg
         {
             mAttributes = new ZoneAttributes(mMapFiles["ZoneInfo"]);
         }
+
+        //public void LoadAttributes() { }
 
         public void LoadLight()
         {
@@ -169,6 +183,28 @@ namespace Takochu.smg
 
             BCSV pathsBCSV = new BCSV(mMapFiles["Map"].OpenFile("/root/jmp/Path/CommonPathInfo"));
 
+            bool didAdd = false;
+            // check each path arg to see if we need to fix a known whitehole bug
+            for (int i = 0; i < 8; i++)
+            {
+                if (!pathsBCSV.ContainsField($"path_arg{i}"))
+                {
+                    pathsBCSV.AddField($"path_arg{i}", 3, -1);
+                    didAdd = true;
+                }
+            }
+            
+            if (didAdd)
+            {
+                pathsBCSV.Save();
+                mMapFiles["Map"].Save();
+
+                MissingPathArgumentsRemove++;
+                
+
+                pathsBCSV = new BCSV(mMapFiles["Map"].OpenFile("/root/jmp/Path/CommonPathInfo"));
+            }
+
             mPaths = new List<PathObj>();
 
             foreach (BCSV.Entry e in pathsBCSV.mEntries)
@@ -188,18 +224,21 @@ namespace Takochu.smg
 
             List<string> ghost_files = mMapFiles["Ghost"].GetFilesWithExt("/root/gst", "gst");
 
-            foreach(string gst in ghost_files)
+            foreach (string gst in ghost_files)
             {
                 mGhostFiles.Add(gst, new GST(mMapFiles["Ghost"].OpenFile($"/root/gst/{gst.ToLower()}")));
             }
         }
 
+
         public void AssignsObjectsToList(string archive, string path)
         {
+            //Console.WriteLine(path);
             string[] data = path.Split('/');
             string layer = data[1];
             string dir = data[2];
-
+            //Console.WriteLine("Layer "+layer);
+            //Console.WriteLine(data[0] + data[1] + data[2] + "  " + data.Count());
             if (!mObjects.ContainsKey(archive))
             {
                 mObjects.Add(archive, new Dictionary<string, List<AbstractObj>>());
@@ -210,48 +249,50 @@ namespace Takochu.smg
                 mObjects[archive].Add(layer, new List<AbstractObj>());
             }
 
-            if (!mZones.ContainsKey(layer))
+            if (!mHasStageObjList.ContainsKey(layer))
             {
-                mZones.Add(layer, new List<StageObj>());
+                mHasStageObjList.Add(layer, new List<StageObj>());
             }
 
             BCSV bcsv = new BCSV(mMapFiles[archive].OpenFile($"/stage/jmp/{path}"));
 
-            foreach (BCSV.Entry e in bcsv.mEntries)
+            foreach (BCSV.Entry Entry in bcsv.mEntries)
             {
                 dir = dir.ToLower();
 
                 switch (dir)
                 {
                     case "areaobjinfo":
-                        mObjects[archive][layer].Add(new AreaObj(e, this, path));
+                        mObjects[archive][layer].Add(new AreaObj(Entry, this, path));
                         break;
                     case "cameracubeinfo":
-                        mObjects[archive][layer].Add(new CameraObj(e, this, path));
+                        mObjects[archive][layer].Add(new CameraObj(Entry, this, path));
                         break;
                     case "stageobjinfo":
-                        mZones[layer].Add(new StageObj(e));
+                        //case "StageObjInfo":
+                        mHasStageObjList[layer].Add(new StageObj(Entry, this));
                         break;
                     case "objinfo":
-                        mObjects[archive][layer].Add(new LevelObj(e, this, path));
+                        //case "ObjInfo":
+                        mObjects[archive][layer].Add(new LevelObj(Entry, this, path));
                         break;
                     case "demoobjinfo":
-                        mObjects[archive][layer].Add(new DemoObj(e, this, path));
+                        mObjects[archive][layer].Add(new DemoObj(Entry, this, path));
                         break;
                     case "generalposinfo":
-                        mObjects[archive][layer].Add(new GeneralPos(e, this, path));
+                        mObjects[archive][layer].Add(new GeneralPos(Entry, this, path));
                         break;
                     case "debugmoveinfo":
-                        mObjects[archive][layer].Add(new DebugMoveObj(e, this, path));
+                        mObjects[archive][layer].Add(new DebugMoveObj(Entry, this, path));
                         break;
                     case "planetobjinfo":
-                        mObjects[archive][layer].Add(new PlanetObj(e, this, path));
+                        mObjects[archive][layer].Add(new PlanetObj(Entry, this, path));
                         break;
                     case "startinfo":
-                        mObjects[archive][layer].Add(new StartObj(e, this, path));
+                        mObjects[archive][layer].Add(new StartObj(Entry, this, path));
                         break;
                     case "mappartsinfo":
-                        mObjects[archive][layer].Add(new MapPartsObj(e, this, path));
+                        mObjects[archive][layer].Add(new MapPartsObj(Entry, this, path));
                         break;
                 }
             }
@@ -278,10 +319,10 @@ namespace Takochu.smg
 
         public bool IsZoneUsedOnLayer(string layer)
         {
-            if (mZones.ContainsKey(layer))
+            if (mHasStageObjList.ContainsKey(layer))
                 return false;
 
-            List<StageObj> zones = mZones[layer];
+            List<StageObj> zones = mHasStageObjList[layer];
 
             return zones.Any(s => mZoneName == s.mName);
         }
@@ -294,9 +335,9 @@ namespace Takochu.smg
             List<string> zones = new List<string>();
             layers.ForEach(l =>
             {
-                if (mZones.ContainsKey(l))
+                if (mHasStageObjList.ContainsKey(l))
                 {
-                    List<StageObj> z = mZones[l];
+                    List<StageObj> z = mHasStageObjList[l];
                     z.ForEach(s => zones.Add(s.mName));
                 }
             });
@@ -320,29 +361,47 @@ namespace Takochu.smg
 
                 Dictionary<string, List<AbstractObj>> objs = mObjects[archive];
 
+
                 layers.ForEach(l =>
                 {
                     if (objs.ContainsKey(l))
+                    {
                         ret.AddRange(objs[l]);
+                        //if (objs[l].Count > 0) Console.WriteLine(objs[l].ElementAt(0).mName);
+
+                    }
+
                 });
             }
 
             return ret;
         }
 
+        public StageObj GetStageDataFromNameOnCurScenario(string stageName)
+        {
+            return GetAllStageDataForCurrentScenario().Find(o => o.mName == stageName);
+        }
+
         public List<StageObj> GetAllStageDataFromLayers(List<string> layers)
         {
             List<StageObj> ret = new List<StageObj>();
 
-            foreach(string layer in layers)
+            foreach (string layer in layers)
             {
-                if (mZones.ContainsKey(layer))
+                if (mHasStageObjList.ContainsKey(layer))
                 {
-                    ret.AddRange(mZones[layer]);
+                    ret.AddRange(mHasStageObjList[layer]);
+
                 }
             }
 
             return ret;
+        }
+
+        public List<StageObj> GetAllStageDataForCurrentScenario()
+        {
+            List<string> layers = GameUtil.GetGalaxyLayers(mGalaxy.GetMaskUsedInZoneOnCurrentScenario(mZoneName));
+            return GetAllStageDataFromLayers(layers);
         }
 
         public List<AbstractObj> GetObjectsFromLayers(string archive, string type, List<string> layers)
@@ -363,6 +422,336 @@ namespace Takochu.smg
             });
 
             return ret;
+        }
+
+        public List<AbstractObj> GetAllObjectsOfTypeFromCurrentScenario(string objType)
+        {
+            List<AbstractObj> ret = new List<AbstractObj>();
+            List<string> layers = GameUtil.GetGalaxyLayers(mGalaxy.GetMaskUsedInZoneOnCurrentScenario(mZoneName));
+
+            foreach(string file in cPossibleFiles)
+            {
+                if (mObjects.ContainsKey(file))
+                {
+                    ret.AddRange(GetObjectsFromLayers(file, objType, layers));
+                }
+            }
+
+            return ret;
+        }
+
+        public List<AbstractObj> GetAllObjectsOfAllTypeFromCurrentScenario()
+        {
+            List<AbstractObj> ret = new List<AbstractObj>();
+            string[] types = new string[] { "AreaObj", "CameraObj", "DebugObj", "DemoObj", "GeneralPosObj", "Obj", "MapPartsObj", "PathPointObj", "PlanetObj", "StartObj" };
+
+            foreach(string type in types)
+            {
+                ret.AddRange(GetAllObjectsOfTypeFromCurrentScenario(type));
+            }
+
+            ret.AddRange(mPaths);
+            mPaths.ForEach(p => ret.AddRange(p.mPathPointObjs));
+
+            return ret;
+        }
+
+        public List<AbstractObj> GetAllObjectsWithAttributeNonZero(string attr)
+        {
+            List<AbstractObj> ret = new List<AbstractObj>();
+            List<AbstractObj> allObjs = GetAllObjectsOfAllTypeFromCurrentScenario();
+
+            foreach (AbstractObj obj in allObjs)
+            {
+                if (obj.mEntry.ContainsKey(attr))
+                {
+                    string fieldType = obj.mEntry.GetTypeOfField(attr).ToString();
+
+                    switch(fieldType)
+                    {
+                        case "System.Int16":
+                            short short_val = obj.Get<short>(attr);
+
+                            if (short_val != -1)
+                            {
+                                ret.Add(obj);
+                            }
+                            break;
+                        case "System.Int32":
+                            int int_val = obj.Get<int>(attr);
+
+                            if (int_val != -1)
+                            {
+                                ret.Add(obj);
+                            }
+                            break;
+                        default:
+                            Console.WriteLine($"lol type {fieldType}");
+                            break;
+                    }
+                }
+            }
+
+            return ret;
+        }
+
+        public bool DoesAnyObjUsePathID(int id, out AbstractObj out_obj)
+        {
+            out_obj = null;
+            List<AbstractObj> objs = GetAllObjectsOfTypeFromCurrentScenario("Obj");
+            objs.AddRange(GetAllObjectsOfTypeFromCurrentScenario("MapPartsObj"));
+
+            foreach(AbstractObj obj in objs)
+            {
+                if (obj.Get<short>("CommonPath_ID") == id)
+                {
+                    out_obj = obj;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public List<int> GetAllUniqueIDS()
+        {
+            List<int> ids = new List<int>();
+
+            foreach (string str in cPossibleFiles)
+            {
+                if (mObjects.ContainsKey(str))
+                {
+                    foreach (string layer in GameUtil.GalaxyLayersCommon)
+                    {
+                        if (mObjects[str].ContainsKey(layer))
+                        {
+                            mObjects[str][layer].ForEach(o => ids.Add(o.mUnique));
+                        }
+                    }
+                }
+            }
+
+            mPaths.ForEach(p => ids.Add(p.mUnique));
+
+            return ids;
+        }
+
+        public List<int> GetAllUniqueIDsFromZoneOnCurrentScenario() {
+            List<string> layers = GameUtil.GetGalaxyLayers(mGalaxy.GetMaskUsedInZoneOnCurrentScenario(mZoneName));
+
+            List<int> ids = new List<int>();
+
+            foreach(string str in cPossibleFiles)
+            {
+                if (mObjects.ContainsKey(str))
+                {
+                    foreach(string l in layers)
+                    {
+                        List<AbstractObj> objs = mObjects[str][l];
+                        objs.ForEach(o => ids.Add(o.mUnique));
+                    }
+                    
+                }
+            }
+
+            mPaths.ForEach(p => ids.Add(p.mUnique));
+
+            return ids;
+        }
+
+        public List<int> GetAllUniqueIDsFromObjectsOfType(string obj_type)
+        {
+            List<int> ids = new List<int>();
+
+            if (obj_type == "PathObj")
+            {
+                mPaths.ForEach(p => ids.Add(p.mUnique));
+                return ids;
+            }
+
+            List<string> layers = GameUtil.GetGalaxyLayers(mGalaxy.GetMaskUsedInZoneOnCurrentScenario(mZoneName));
+           
+
+            foreach (string str in cPossibleFiles)
+            {
+                if (mObjects.ContainsKey(str))
+                {
+                    foreach (string l in layers)
+                    {
+                        List<AbstractObj> objs = mObjects[str][l];
+
+                        foreach(AbstractObj o in objs)
+                        {
+                            if (o.mType == obj_type)
+                            {
+                                ids.Add(o.mUnique);
+                            }
+                                
+                        }
+                    }
+
+                }
+            }
+
+            return ids;
+        }
+
+        public void RenderObjFromUnique(int id, RenderMode mode, bool recalcPosRot = false)
+        {
+            List<string> layers = GameUtil.GetGalaxyLayers(mGalaxy.GetMaskUsedInZoneOnCurrentScenario(mZoneName));
+
+            foreach (string str in cPossibleFiles)
+            {
+                if (mObjects.ContainsKey(str))
+                {
+                    foreach (string l in layers)
+                    {
+                        List<AbstractObj> objs = mObjects[str][l];
+
+                        foreach(AbstractObj o in objs)
+                        {
+                            if (o.mUnique == id)
+                            {
+                                o.Render(mode);
+                                // we found our unique id object, exit
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach(PathObj pobj in mPaths)
+            {
+                if (pobj.mUnique == id)
+                {
+                    pobj.Render(mode);
+                    return;
+                }
+            }
+        }
+
+        public PathObj GetPathFromID(int id)
+        {
+            foreach (PathObj pobj in mPaths)
+            {
+                if (pobj.mID == id)
+                {
+                    return pobj;
+                }
+            }
+
+            return null;
+        }
+
+        public AbstractObj GetObjFromUniqueID(int id)
+        {
+            List<string> layers = GameUtil.GetGalaxyLayers(mGalaxy.GetMaskUsedInZoneOnCurrentScenario(mZoneName));
+
+            foreach (string str in cPossibleFiles)
+            {
+                if (mObjects.ContainsKey(str))
+                {
+                    foreach (string l in layers)
+                    {
+                        if (!mObjects.ContainsKey(str))
+                        {
+                            break;
+                        }
+
+                        if (!mObjects[str].ContainsKey(l))
+                        {
+                            break;
+                        }
+
+                        List<AbstractObj> objs = mObjects[str][l];
+
+                        foreach (AbstractObj o in objs)
+                        {
+                            if (o.mUnique == id)
+                            {
+                                return o;
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (PathObj pobj in mPaths)
+            {
+                if (pobj.mUnique == id)
+                {
+                    return pobj;
+                }
+            }
+
+            return null;
+        }
+
+        public void DeleteObjectWithUniqueID(int id)
+        {
+            int idx = -1;
+            List<string> layers = GameUtil.GetGalaxyLayers(mGalaxy.GetMaskUsedInZoneOnCurrentScenario(mZoneName));
+
+            foreach (string str in cPossibleFiles)
+            {
+                if (mObjects.ContainsKey(str))
+                {
+                    foreach (string l in layers)
+                    {
+                        List<AbstractObj> objs = mObjects[str][l];
+
+                        foreach (AbstractObj o in objs)
+                        {
+                            if (o.mUnique == id)
+                            {
+                                idx = objs.IndexOf(o);
+                                break;
+                            }
+                        }
+
+                        if (idx != -1)
+                        {
+                            objs.RemoveAt(idx);
+                            mObjects[str][l] = objs;
+                            return;
+                        }
+                    }
+                }
+            }
+
+            foreach (PathObj pobj in mPaths)
+            {
+                if (pobj.mUnique == id)
+                {
+                    idx = mPaths.IndexOf(pobj);
+                }
+            }
+
+            if (idx != -1)
+            {
+                mPaths.RemoveAt(idx);
+            }
+
+            UpdatePathIndicies();
+        }
+
+        public void DeletePathPointFromPath(int id, int idx)
+        {
+            PathObj path = GetObjFromUniqueID(id) as PathObj;
+            path.RemovePathPointAtIndex(idx);
+        }
+
+        public void UpdatePathIndicies()
+        {
+            int idx = 0;
+
+            foreach (PathObj pobj in mPaths)
+            {
+                pobj.mID = idx;
+                pobj.mEntry.Set("no", idx);
+                idx++;
+            }
         }
 
         public Camera GetCamera(string cameraName)
@@ -487,10 +876,11 @@ namespace Takochu.smg
 
         private void SaveObjects(string archive, string dir, string file)
         {
-            if (archive == "Light")
-                return;
-
+            //if (archive == "Light") return;
+            //if (archive == "Ghost") return;
+            //Console.WriteLine(archive+"  "+dir);
             List<string> layers = mMapFiles[archive].GetDirectories($"/stage/jmp/{dir}");
+            if (layers == null) return;
 
             foreach (string layer in layers)
             {
@@ -530,6 +920,7 @@ namespace Takochu.smg
         {
             BCSV bcsv = new BCSV(mMapFiles["Map"].OpenFile("/root/camera/CameraParam.bcam"));
             bcsv.mEntries.Clear();
+            bcsv.RemoveField("no");
 
             foreach (Camera c in mCameras)
             {
@@ -574,10 +965,12 @@ namespace Takochu.smg
         private Game mGame;
         private FilesystemBase mFilesystem;
         public string mZoneName;
+
         public bool mIsMainGalaxy;
 
         public Dictionary<string, Dictionary<string, List<AbstractObj>>> mObjects;
-        public Dictionary<string, List<StageObj>> mZones;
+
+        public Dictionary<string, List<StageObj>> mHasStageObjList;
         public List<Camera> mCameras;
         public Dictionary<string, CANM> mIntroCameras;
         public Dictionary<string, GST> mGhostFiles;

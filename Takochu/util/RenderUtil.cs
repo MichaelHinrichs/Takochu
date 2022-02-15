@@ -5,13 +5,14 @@ using System.Text;
 using System.Threading.Tasks;
 using OpenTK.Graphics.OpenGL;
 using OpenTK;
-using SuperBMDLib.Materials;
-using SuperBMDLib.Materials.Enums;
 using Takochu.smg.obj;
 using OpenTK.Graphics;
 
 namespace Takochu.util
 {
+    /// <summary>
+    /// レンダリング時に使える便利関数
+    /// </summary>
     public static class RenderUtil
     {
         public static Matrix4 SRTToMatrix(Vector3 scale, Vector3 rot, Vector3 trans)
@@ -76,6 +77,17 @@ namespace Takochu.util
                 sCurrentColor = 0;
 
             return sColors[sCurrentColor++];
+        }
+
+        public class Ray
+        {
+            public Vector3 Origin;
+            public Vector3 Direction;
+            public Ray(Vector3 origin, Vector3 dir)
+            {
+                Origin = origin;
+                Direction = dir;
+            }
         }
 
         static int sCurrentColor = 0;
