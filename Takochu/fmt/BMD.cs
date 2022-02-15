@@ -63,6 +63,24 @@ namespace Takochu.fmt
         private delegate float ReadArrayValueFunc(byte fixedpoint);
         private delegate Vector4 ReadColorValueFunc();
 
+        private float ReadArrayValue_u8(byte fixedpoint)
+        {
+            byte val = m_File.ReadByte();
+            return (float)(val / (float)(1 << fixedpoint));
+        }
+
+        /*private float ReadArrayValue_s8(byte fixedpoint)
+        {
+            sbyte val = m_File.ReadSByte();
+            return (float)(val / (float)(1 << fixedpoint));
+        }*/
+
+        private float ReadArrayValue_u16(byte fixedpoint)
+        {
+            ushort val = m_File.ReadUInt16();
+            return (float)(val / (float)(1 << fixedpoint));
+        }
+
         private float ReadArrayValue_s16(byte fixedpoint)
         {
             short val = m_File.ReadInt16();
@@ -74,6 +92,60 @@ namespace Takochu.fmt
             return m_File.ReadSingle();
         }
 
+        private Vector4 ReadColorValue_None()
+        {
+            return new Vector4(1f, 1f, 1f, 1f);
+        }
+        /*private Vector4 ReadColorValue_RGB565()
+        {
+            byte[] dat = new byte[2];
+            m_File.Reader.Read(dat, 0, 2);
+
+            byte r = (byte)(dat[0] >> 2);
+            byte g = (byte)(((dat[0] & 0x07) << 3) + (dat[1] >> 5));
+            byte b = (byte)(dat[1] & 0x1F);
+            byte a = 255;
+            return new Vector4(r / 255f, g / 255f, b / 255f, a / 255f);
+        }*/
+        private Vector4 ReadColorValue_RGB8()
+        {
+            byte r = m_File.ReadByte();
+            byte g = m_File.ReadByte();
+            byte b = m_File.ReadByte();
+            byte a = 255;
+            return new Vector4(r / 255f, g / 255f, b / 255f, a / 255f);
+        }
+        private Vector4 ReadColorValue_RGBX8()
+        {
+            byte r = m_File.ReadByte();
+            byte g = m_File.ReadByte();
+            byte b = m_File.ReadByte();
+            m_File.ReadByte();
+            byte a = 255;
+            return new Vector4(r / 255f, g / 255f, b / 255f, a / 255f);
+        }
+        /*private Vector4 ReadColorValue_RGBA4()
+        {
+            byte[] dat = new byte[2];
+            m_File.Reader.Read(dat, 0, 2);
+
+            byte r = (byte)(dat[0] >> 4);
+            byte g = (byte)(dat[0] & 0x0F);
+            byte b = (byte)(dat[1] >> 4);
+            byte a = (byte)(dat[1] & 0x0F);
+            return new Vector4(r / 255f, g / 255f, b / 255f, a / 255f);
+        }
+        private Vector4 ReadColorValue_RGBA6()
+        {
+            byte[] dat = new byte[3];
+            m_File.Reader.Read(dat, 0, 3);
+
+            byte r = (byte)(dat[0] >> 2);
+            byte g = (byte)(((dat[0] & 0x03) << 4) + ((dat[1] & 0xF0) >> 4));
+            byte b = (byte)(((dat[1] & 0x0F) << 2) + ((dat[2] & 0xC0) >> 6));
+            byte a = (byte)(dat[2] & 0x3F);
+            return new Vector4(r / 255f, g / 255f, b / 255f, a / 255f);
+        }*/
         private Vector4 ReadColorValue_RGBA8()
         {
             byte r = m_File.ReadByte();
@@ -97,7 +169,8 @@ namespace Takochu.fmt
             matstack.Push(0xFFFF);
             nodestack.Push(-1);
 
-            m_File.Skip(4);
+            Unknown = m_File.ReadUInt16();// 0x00, 0x01, or 0x02
+            m_File.Skip(2);
             NumPackets = m_File.ReadUInt32();
             NumVertices = m_File.ReadUInt32();
 
@@ -192,6 +265,11 @@ namespace Takochu.fmt
 
                     switch (datatype)
                     {
+                        //case 0: readcolor = ReadColorValue_RGB565; arraysize /= 2; break;
+                        case 1: readcolor = ReadColorValue_RGBA8; arraysize /= 4; break;
+                        case 2: readcolor = ReadColorValue_RGBX8; arraysize /= 4; break;
+                        //case 3: readcolor = ReadColorValue_RGBA4; arraysize /= 2; break;
+                        //case 4: readcolor = ReadColorValue_RGBA6; arraysize /= 3; break;
                         case 5: readcolor = ReadColorValue_RGBA8; arraysize /= 4; break;
                         default: throw new NotImplementedException("Bmd: unsupported color DataType " + datatype.ToString());
                     }
@@ -200,6 +278,9 @@ namespace Takochu.fmt
                 {
                     switch (datatype)
                     {
+                        case 0: readval = ReadArrayValue_u8; arraysize /= 1; break;
+                        //case 1: readval = ReadArrayValue_s8; arraysize /= 1; break;
+                        case 2: readval = ReadArrayValue_u16; arraysize /= 2; break;
                         case 3: readval = ReadArrayValue_s16; arraysize /= 2; break;
                         case 4: readval = ReadArrayValue_f32; arraysize /= 4; break;
                         default: throw new NotImplementedException("Bmd: unsupported DataType " + datatype.ToString());
@@ -385,7 +466,7 @@ namespace Takochu.fmt
                 Joints[i] = jnt;
 
                 jnt.Unk1 = m_File.ReadUInt16();
-                jnt.Unk2 = m_File.ReadByte();
+                jnt.NoInheritScale = m_File.ReadByte();
                 m_File.Skip(1);
 
                 jnt.Scale.X = m_File.ReadSingle();
@@ -429,7 +510,7 @@ namespace Takochu.fmt
                 m_File.Seek((int)(sectionstart + jointremapoffset + (i * 2)));
                 jnt.Remap = m_File.ReadUInt16();
                 m_File.Seek((int)(sectionstart + stringsoffset));
-                jnt.Name = m_File.ReadString(Data, StringOffset);
+                //jnt.Name = m_File.ReadString(Data, StringOffset);
             }
 
             m_File.Seek((int)(sectionstart + sectionsize));
@@ -443,7 +524,9 @@ namespace Takochu.fmt
             ushort numbatches = m_File.ReadUInt16();
             m_File.Skip(2);
             uint batchesoffset = m_File.ReadUInt32();
-            m_File.Skip(8);
+            int remaptableoffset = m_File.ReadInt32();
+
+            m_File.ReadInt32();
             uint batchattribsoffset = m_File.ReadUInt32();
             uint mtxtableoffset = m_File.ReadUInt32();
             uint dataoffset = m_File.ReadUInt32();
@@ -588,6 +671,10 @@ namespace Takochu.fmt
                     }
                 }
             }
+
+            m_File.Seek((int)(sectionstart + remaptableoffset));
+            for (int i = 0; i < numbatches; i++)
+                Batches[i].Remap = m_File.ReadUInt16();
 
             m_File.Seek((int)(sectionstart + sectionsize));
         }
@@ -1154,7 +1241,7 @@ namespace Takochu.fmt
                 public List<Primitive> Primitives;
                 public ushort[] MatrixTable;
             }
-
+            public ushort Remap;
 
             public byte MatrixType;
 
@@ -1180,7 +1267,7 @@ namespace Takochu.fmt
         public class Joint
         {
             public ushort Unk1;
-            public byte Unk2;
+            public byte NoInheritScale;
 
             public Vector3 Scale, Rotation, Translation;
             public Matrix4 Matrix;
@@ -1323,6 +1410,7 @@ namespace Takochu.fmt
         public Vector3 BBoxMin, BBoxMax;
 
         // INF1
+        public ushort Unknown;
         public uint NumPackets;
         public uint NumVertices;
         public List<SceneGraphNode> SceneGraph;
