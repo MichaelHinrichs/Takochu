@@ -52,5 +52,7 @@ namespace Takochu.io
 
         public virtual byte[] GetBuffer() { return null; }
         public virtual void SetBuffer(byte[] buffer) { }
+
+        public BinaryReader Reader;
     }
 }
