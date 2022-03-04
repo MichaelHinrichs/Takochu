@@ -281,7 +281,7 @@ namespace Takochu.rnd
                                 else
                                     GL.BlendEquation(BlendEquationMode.FuncAdd);
 
-                                GL.BlendFunc((BlendingFactor)blendsrc[mat.BlendMode.SrcFactor], (BlendingFactor)blenddst[mat.BlendMode.DstFactor]);
+                                GL.BlendFunc(blendsrc[mat.BlendMode.SrcFactor], blenddst[mat.BlendMode.DstFactor]);
                                 break;
 
                             case 2:
