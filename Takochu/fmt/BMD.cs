@@ -271,7 +271,7 @@ namespace Takochu.fmt
                     switch (datatype)
                     {
                         case 0: readcolor = ReadColorValue_RGB565; arraysize /= 2; break;
-                        case 1: readcolor = ReadColorValue_RGBA8; arraysize /= 4; break;
+                        case 1: readcolor = ReadColorValue_RGB8; arraysize /= 4; break;
                         case 2: readcolor = ReadColorValue_RGBX8; arraysize /= 4; break;
                         case 3: readcolor = ReadColorValue_RGBA4; arraysize /= 2; break;
                         case 4: readcolor = ReadColorValue_RGBA6; arraysize /= 3; break;
