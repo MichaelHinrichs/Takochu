@@ -281,7 +281,7 @@ namespace Takochu.rnd
                                 else
                                     GL.BlendEquation(BlendEquationMode.FuncAdd);
 
-                                GL.BlendFunc(blendsrc[mat.BlendMode.SrcFactor], blenddst[mat.BlendMode.DstFactor]);
+                                GL.BlendFunc((BlendingFactor)blendsrc[mat.BlendMode.SrcFactor], (BlendingFactor)blenddst[mat.BlendMode.DstFactor]);
                                 break;
 
                             case 2:
@@ -385,7 +385,7 @@ namespace Takochu.rnd
                             }
                             else
                             {
-                                mtxtable[i] = m_Model.Joints[mtxtype.Index].FinalMatrix;
+                                mtxtable[i] = m_Model.Joints[mtxtype.TransformIndex].FinalMatrix;
                                 mtx_debug[i] = 0;
                             }
                         }
