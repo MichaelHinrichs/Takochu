@@ -661,7 +661,7 @@ namespace Takochu.ui
                     keyValuePairs.Add(o.mUnique, GL.GenLists(1));
                     mDispLists[t].Add(o.mUnique, GL.GenLists(1));
 
-                    if (o.mType == "AreaObj" && AreaToolStripMenuItem.Checked == false)
+                    if (o.mType == "AreaObj" && AreaToolStripMenuItem.Checked == false && mode != RenderMode.Picking)
                         continue;
 
                     GL.NewList(mDispLists[t][o.mUnique], ListMode.Compile);
@@ -695,7 +695,7 @@ namespace Takochu.ui
                     keyValuePairs.Add(p.mUnique, GL.GenLists(1));
                     mDispLists[t].Add(p.mUnique, GL.GenLists(1));
 
-                    if (pathsToolStripMenuItem.Checked == false)
+                    if (pathsToolStripMenuItem.Checked == false && mode != RenderMode.Picking)
                         continue;
 
                     GL.NewList(mDispLists[t][p.mUnique], ListMode.Compile);
@@ -727,7 +727,7 @@ namespace Takochu.ui
                     keyValuePairs.Add(o.mUnique, GL.GenLists(1));
                     mDispLists[t].Add(o.mUnique, GL.GenLists(1));
 
-                    if (o.mType == "AreaObj" && AreaToolStripMenuItem.Checked == false)
+                    if (o.mType == "AreaObj" && AreaToolStripMenuItem.Checked == false && mode != RenderMode.Picking)
                             continue;
 
                     GL.NewList(mDispLists[t][o.mUnique], ListMode.Compile);
@@ -755,7 +755,7 @@ namespace Takochu.ui
                     keyValuePairs.Add(path.mUnique, GL.GenLists(1));
                     mDispLists[t].Add(path.mUnique, GL.GenLists(1));
 
-                    if (pathsToolStripMenuItem.Checked == false)
+                    if (pathsToolStripMenuItem.Checked == false && mode != RenderMode.Picking)
                         continue;
 
                     GL.NewList(mDispLists[t][path.mUnique], ListMode.Compile);
@@ -977,10 +977,32 @@ namespace Takochu.ui
                     Zone zone = mGalaxy.GetZone(z);
                     AbstractObj obj = zone.GetObjFromUniqueID(id);
 
-                    if (obj != null)
+                    if (obj == null)
+                    {
+                        continue;
+                    }
+
+                    // if the current seleted object is the same, we deselect
+                    if (obj == mSelectedObject)
+                    {
+                        mSelectedObject = null;
+                        return;
+                    }
+
+                    mSelectedObject = obj;
+
+                    if (obj is PathPointObj)
+                    {
+                        SelectTreeNodeWithUnique(id);
+                        break;
+                    }
+                    else
                     {
                         SelectTreeNodeWithUnique(obj.mUnique);
+                        break;
                     }
+
+                    
                 }
             }
 
@@ -1004,6 +1026,7 @@ namespace Takochu.ui
 
             node.EnsureVisible();
             objectsListTreeView.Select();
+            objectsListTreeView.SelectedNode = node;
 
             if (node.Parent == null && node.Text.EndsWith("Zone"))
             {
@@ -1023,6 +1046,24 @@ namespace Takochu.ui
                     var Rot_ZoneOffset = mGalaxy.Get_Rot_GlobalOffset(ZoneName);
 
                     var PosObj = abstractObj.mTruePosition;
+
+                    //Move the camera to the position of Point0, index number 0 in the PathPoint list.
+                    if (abstractObj is PathObj) 
+                    {
+                        if (abstractObj == null) return;
+                        var pathObj = abstractObj as PathObj;
+                        PosObj = pathObj.mPathPointObjs[0].mPoint0;
+                    }
+
+                    //The camera when PathPointObj is selected.
+                    //The selection of point 1 and point 2 of PathPointObj is not supported.
+                    if (abstractObj is PathPointObj) 
+                    {
+                        if (abstractObj == null) return;
+                        var pathPointObj = abstractObj as PathPointObj;
+                        PosObj = pathPointObj.mPoint0;
+                    }
+
                     var CorrectPos_Object = calc.RotAfin.GetPositionAfterRotation(PosObj, Rot_ZoneOffset, calc.RotAfin.TargetVector.All);
 
                     m_CamDistance = 0.200f;
@@ -1194,6 +1235,21 @@ namespace Takochu.ui
                     ExpandAllParents(node);
                     ChangeToNode(node, (Control.ModifierKeys == Keys.Shift));
                     return;
+                }
+                else if (obj is PathPointObj)
+                {
+                    var ppObj = obj as PathPointObj;
+
+                    for (int i = 0; i < 3; i++)
+                    {
+                        if (ppObj.mPointIDs[i] == id)
+                        {
+                            tabControl1.SelectedIndex = 2;
+                            ExpandAllParents(node);
+                            ChangeToNode(node, (Control.ModifierKeys == Keys.Shift));
+                            return;
+                        }
+                    }
                 }
             }
         }

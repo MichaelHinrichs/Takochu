@@ -30,14 +30,16 @@ namespace Takochu.smg.obj
 
             if (this is PathPointObj)
             {
-                int curUnique = Program.sUniqueID;
-                for (int i = 0; i < 4; i++)
+                PathPointObj path = this as PathPointObj;
+                path.mPointColors = new Color[3];
+                path.mPointIDs = new int[3];
+                for (int i = 0; i < 3; i++)
                 {
-                    mUnique = Program.sUniqueID++;
+                    path.mPointIDs[i] = Program.sUniqueID++;
                     Color c = Color.FromArgb(0xFF, GlobalRandom.GetNext(256), GlobalRandom.GetNext(256), GlobalRandom.GetNext(256));
-                    ColorHolder.Add(mUnique, c);
+                    ColorHolder.Add(path.mPointIDs[i], c);
+                    path.mPointColors[i] = c;
                 }
-                mUnique = curUnique;
             }
             else
             {
